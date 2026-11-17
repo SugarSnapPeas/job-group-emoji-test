@@ -1,0 +1,56 @@
+version: 2.1
+
+jobs:
+  build:
+    docker: [{image: cimg/base:current}]
+    resource_class: small
+    steps:
+      - run: echo build
+  deploy:
+    docker: [{image: cimg/base:current}]
+    resource_class: small
+    steps:
+      - run: echo "deploying $CIRCLE_JOB"
+  smoke:
+    docker: [{image: cimg/base:current}]
+    resource_class: small
+    steps:
+      - run: echo "smoke $CIRCLE_JOB"
+
+job-groups:
+  # Plain ASCII group key; emoji goes on the invocation name:
+  ship:
+    jobs:
+      - deploy
+      - smoke:
+          requires: [deploy]
+
+  # Emoji in the job-groups key itself
+  "🚢 emoji-key":
+    jobs:
+      - deploy:
+          name: key-deploy
+      - smoke:
+          name: key-smoke
+          requires: [key-deploy]
+
+workflows:
+  emoji-groups:
+    jobs:
+      - build
+      # 1. Emoji in the invocation name, no serial group
+      - ship:
+          name: "🚀 staging"
+          requires: [build]
+      # 2. Emoji in the invocation name + serial group (key-icon blocks)
+      - ship:
+          name: "🔒 production"
+          serial-group: << pipeline.project.slug >>/emoji-prod
+          requires: ["🚀 staging"]
+      # 3. Control: ASCII invocation name
+      - ship:
+          name: plain-ascii
+          requires: [build]
+      # 4. Emoji in the group key, invoked without name:
+      - "🚢 emoji-key":
+          requires: [build]
