@@ -20,6 +20,9 @@ jobs:
       - run: echo "<< parameters.item >>"
   marker:
     type: no-op
+  label:
+    executor: tiny
+    steps: [{run: "true"}]
 
 job-groups:
   # D. job group invoked with an emoji name; its jobs become "🧀 dairy.<name>"
@@ -47,7 +50,10 @@ workflows:
           name: orchard-done
           requires: ["🍎 orchard-apple", "🍎 orchard-apricot", "🍎 orchard-cherry", "🍎 orchard-fig", "🍎 orchard-peach", "🍎 orchard-pear", "🍎 orchard-plum", "🍎 orchard-quince"]
 
-      # B. Plain names + a no-op "header" job in the stack, named to sort first
+      # B. Plain names + a real "header" job in the stack, listed first
+      - label:
+          name: "🥕 ROOT VEGETABLES"
+          requires: [kickoff]
       - work:
           name: "roots-<< matrix.item >>"
           matrix:
@@ -55,14 +61,11 @@ workflows:
               item: [beet, carrot, daikon, ginger, parsnip, radish, turnip, yam]
           requires: [kickoff]
       - marker:
-          name: "!🥕 ROOT VEGETABLES"
-          requires: [kickoff]
-      - marker:
           name: roots-done
-          requires: ["!🥕 ROOT VEGETABLES", roots-beet, roots-carrot, roots-daikon, roots-ginger, roots-parsnip, roots-radish, roots-turnip, roots-yam]
+          requires: ["🥕 ROOT VEGETABLES", roots-beet, roots-carrot, roots-daikon, roots-ginger, roots-parsnip, roots-radish, roots-turnip, roots-yam]
 
-      # C. Plain names, labelled by emoji no-op jobs on either side of the stack
-      - marker:
+      # C. Plain names, labelled by real emoji jobs on either side of the stack
+      - label:
           name: "🌿 herbs ▶"
           requires: [kickoff]
       - work:
@@ -71,7 +74,7 @@ workflows:
             parameters:
               item: [basil, chive, dill, mint, oregano, parsley, sage, thyme]
           requires: ["🌿 herbs ▶"]
-      - marker:
+      - label:
           name: "✅ 🌿 herbs done"
           requires: [herbs-basil, herbs-chive, herbs-dill, herbs-mint, herbs-oregano, herbs-parsley, herbs-sage, herbs-thyme]
 
