@@ -1,56 +1,85 @@
 version: 2.1
 
+# How can a collapsed "Show N more jobs" stack be made recognizable at a glance?
+# Every stack below has 8+ sibling jobs with the same upstream and downstream.
+
+executors:
+  tiny:
+    docker: [{image: cimg/base:current}]
+    resource_class: small
+
 jobs:
-  build:
-    docker: [{image: cimg/base:current}]
-    resource_class: small
+  kickoff:
+    executor: tiny
+    steps: [{run: echo kickoff}]
+  work:
+    executor: tiny
+    parameters:
+      item: {type: string}
     steps:
-      - run: echo build
-  deploy:
-    docker: [{image: cimg/base:current}]
-    resource_class: small
-    steps:
-      - run: echo "deploying $CIRCLE_JOB"
-  smoke:
-    docker: [{image: cimg/base:current}]
-    resource_class: small
-    steps:
-      - run: echo "smoke $CIRCLE_JOB"
+      - run: echo "<< parameters.item >>"
+  marker:
+    type: no-op
 
 job-groups:
-  # Plain ASCII group key; emoji goes on the invocation name:
-  ship:
+  # D. job group invoked with an emoji name; its jobs become "🧀 dairy.<name>"
+  dairy:
     jobs:
-      - deploy
-      - smoke:
-          requires: [deploy]
-
-  # Emoji in the job-groups key itself
-  "🚢 emoji-key":
-    jobs:
-      - deploy:
-          name: key-deploy
-      - smoke:
-          name: key-smoke
-          requires: [key-deploy]
+      - work:
+          matrix:
+            parameters:
+              item: [brie, cheddar, feta, gouda, havarti, manchego, ricotta, swiss]
+          name: "<< matrix.item >>"
 
 workflows:
-  emoji-groups:
+  stack-labels:
     jobs:
-      - build
-      # 1. Emoji in the invocation name, no serial group
-      - ship:
-          name: "🚀 staging"
-          requires: [build]
-      # 2. Emoji in the invocation name + serial group (key-icon blocks)
-      - ship:
-          name: "🔒 production"
-          serial-group: << pipeline.project.slug >>/emoji-prod
-          requires: ["🚀 staging"]
-      # 3. Control: ASCII invocation name
-      - ship:
-          name: plain-ascii
-          requires: [build]
-      # 4. Emoji in the group key, invoked without name:
-      - "🚢 emoji-key":
-          requires: [build]
+      - kickoff
+
+      # A. Emoji prefix on every job in the stack
+      - work:
+          name: "🍎 orchard-<< matrix.item >>"
+          matrix:
+            parameters:
+              item: [apple, apricot, cherry, fig, peach, pear, plum, quince]
+          requires: [kickoff]
+      - marker:
+          name: orchard-done
+          requires: ["🍎 orchard-apple", "🍎 orchard-apricot", "🍎 orchard-cherry", "🍎 orchard-fig", "🍎 orchard-peach", "🍎 orchard-pear", "🍎 orchard-plum", "🍎 orchard-quince"]
+
+      # B. Plain names + a no-op "header" job in the stack, named to sort first
+      - work:
+          name: "roots-<< matrix.item >>"
+          matrix:
+            parameters:
+              item: [beet, carrot, daikon, ginger, parsnip, radish, turnip, yam]
+          requires: [kickoff]
+      - marker:
+          name: "!🥕 ROOT VEGETABLES"
+          requires: [kickoff]
+      - marker:
+          name: roots-done
+          requires: ["!🥕 ROOT VEGETABLES", roots-beet, roots-carrot, roots-daikon, roots-ginger, roots-parsnip, roots-radish, roots-turnip, roots-yam]
+
+      # C. Plain names, labelled by emoji no-op jobs on either side of the stack
+      - marker:
+          name: "🌿 herbs ▶"
+          requires: [kickoff]
+      - work:
+          name: "herbs-<< matrix.item >>"
+          matrix:
+            parameters:
+              item: [basil, chive, dill, mint, oregano, parsley, sage, thyme]
+          requires: ["🌿 herbs ▶"]
+      - marker:
+          name: "✅ 🌿 herbs done"
+          requires: [herbs-basil, herbs-chive, herbs-dill, herbs-mint, herbs-oregano, herbs-parsley, herbs-sage, herbs-thyme]
+
+      # D. Named job group (see job-groups above)
+      - dairy:
+          name: "🧀 dairy"
+          requires: [kickoff]
+
+      - marker:
+          name: all-done
+          requires: [orchard-done, roots-done, "✅ 🌿 herbs done", "🧀 dairy"]
