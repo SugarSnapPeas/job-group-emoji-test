@@ -1,7 +1,8 @@
 version: 2.1
 
-# How can a collapsed "Show N more jobs" stack be made recognizable at a glance?
-# Every stack below has 8+ sibling jobs with the same upstream and downstream.
+# Do two job groups with the same upstream and downstream render as separate
+# stacks? No matrix, no serial group: each group's `name:` adds the emoji
+# prefix to its jobs.
 
 executors:
   tiny:
@@ -18,71 +19,41 @@ jobs:
       item: {type: string}
     steps:
       - run: echo "<< parameters.item >>"
-  marker:
-    type: no-op
-  label:
+  all-done:
     executor: tiny
-    steps: [{run: "true"}]
+    steps: [{run: echo done}]
 
 job-groups:
-  # D. job group invoked with an emoji name; its jobs become "🧀 dairy.<name>"
+  herbs:
+    jobs:
+      - work: {name: basil, item: basil}
+      - work: {name: chive, item: chive}
+      - work: {name: dill, item: dill}
+      - work: {name: mint, item: mint}
+      - work: {name: oregano, item: oregano}
+      - work: {name: parsley, item: parsley}
+      - work: {name: sage, item: sage}
+      - work: {name: thyme, item: thyme}
   dairy:
     jobs:
-      - work:
-          matrix:
-            parameters:
-              item: [brie, cheddar, feta, gouda, havarti, manchego, ricotta, swiss]
-          name: "<< matrix.item >>"
+      - work: {name: brie, item: brie}
+      - work: {name: cheddar, item: cheddar}
+      - work: {name: feta, item: feta}
+      - work: {name: gouda, item: gouda}
+      - work: {name: havarti, item: havarti}
+      - work: {name: manchego, item: manchego}
+      - work: {name: ricotta, item: ricotta}
+      - work: {name: swiss, item: swiss}
 
 workflows:
-  stack-labels:
+  two-groups:
     jobs:
       - kickoff
-
-      # A. Emoji prefix on every job in the stack
-      - work:
-          name: "🍎 orchard-<< matrix.item >>"
-          matrix:
-            parameters:
-              item: [apple, apricot, cherry, fig, peach, pear, plum, quince]
+      - herbs:
+          name: "🌿 herbs"
           requires: [kickoff]
-      - marker:
-          name: orchard-done
-          requires: ["🍎 orchard-apple", "🍎 orchard-apricot", "🍎 orchard-cherry", "🍎 orchard-fig", "🍎 orchard-peach", "🍎 orchard-pear", "🍎 orchard-plum", "🍎 orchard-quince"]
-
-      # B. Plain names + a real "header" job in the stack, listed first
-      - label:
-          name: "🥕 ROOT VEGETABLES"
-          requires: [kickoff]
-      - work:
-          name: "roots-<< matrix.item >>"
-          matrix:
-            parameters:
-              item: [beet, carrot, daikon, ginger, parsnip, radish, turnip, yam]
-          requires: [kickoff]
-      - marker:
-          name: roots-done
-          requires: ["🥕 ROOT VEGETABLES", roots-beet, roots-carrot, roots-daikon, roots-ginger, roots-parsnip, roots-radish, roots-turnip, roots-yam]
-
-      # C. Plain names, labelled by real emoji jobs on either side of the stack
-      - label:
-          name: "🌿 herbs ▶"
-          requires: [kickoff]
-      - work:
-          name: "herbs-<< matrix.item >>"
-          matrix:
-            parameters:
-              item: [basil, chive, dill, mint, oregano, parsley, sage, thyme]
-          requires: ["🌿 herbs ▶"]
-      - label:
-          name: "✅ 🌿 herbs done"
-          requires: [herbs-basil, herbs-chive, herbs-dill, herbs-mint, herbs-oregano, herbs-parsley, herbs-sage, herbs-thyme]
-
-      # D. Named job group (see job-groups above)
       - dairy:
           name: "🧀 dairy"
           requires: [kickoff]
-
-      - marker:
-          name: all-done
-          requires: [orchard-done, roots-done, "✅ 🌿 herbs done", "🧀 dairy"]
+      - all-done:
+          requires: ["🌿 herbs", "🧀 dairy"]
