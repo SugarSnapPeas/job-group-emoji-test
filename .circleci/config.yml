@@ -1,8 +1,8 @@
 version: 2.1
 
-# Do two job groups with the same upstream and downstream render as separate
-# stacks? No matrix, no serial group: each group's `name:` adds the emoji
-# prefix to its jobs.
+# Two job groups (emoji from each group's `name:`) next to a plain set of jobs
+# with emoji in each job's own `name:`. All three share the same upstream
+# (kickoff) and downstream (all-done). No matrix, no serial group.
 
 executors:
   tiny:
@@ -55,5 +55,48 @@ workflows:
       - dairy:
           name: "🧀 dairy"
           requires: [kickoff]
+      # No job group: emoji in each job's workflow name:, no start/end jobs
+      - work:
+          name: "🍎 orchard-apple"
+          item: apple
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-apricot"
+          item: apricot
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-cherry"
+          item: cherry
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-fig"
+          item: fig
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-peach"
+          item: peach
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-pear"
+          item: pear
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-plum"
+          item: plum
+          requires: [kickoff]
+      - work:
+          name: "🍎 orchard-quince"
+          item: quince
+          requires: [kickoff]
       - all-done:
-          requires: ["🌿 herbs", "🧀 dairy"]
+          requires:
+            - "🌿 herbs"
+            - "🧀 dairy"
+            - "🍎 orchard-apple"
+            - "🍎 orchard-apricot"
+            - "🍎 orchard-cherry"
+            - "🍎 orchard-fig"
+            - "🍎 orchard-peach"
+            - "🍎 orchard-pear"
+            - "🍎 orchard-plum"
+            - "🍎 orchard-quince"
